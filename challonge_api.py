@@ -25,7 +25,5 @@ def get_tournament_open_matches():
     return open_matches
 
 
-
-
 def auth_challonge():
     challonge.set_credentials("jordan_garces", "l023Fd0Funogz2JyxDqfPif6UeL10728JcfwLZfM")
