@@ -1,8 +1,14 @@
-import os
+import slack_sdk
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from challonge_api import *
-from views.create.create_tournament import get_create_view
+from views.create_tournament_view import get_create_view
+import os
+import ssl
+
+from views.waiting_to_start_view import get_waiting_to_start_view
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 registered_users = {}
@@ -77,6 +83,46 @@ def register_action_button_click(body, ack, say):
     say(registered_users.__str__())
 
 
+@app.action("static_select-action")
+def register_action_button_click(body, ack, say):
+    # Acknowledge the action
+    ack()
+
+
+# Update the view on submission
+@app.view("view_1")
+def handle_submission(ack, body, client, view, logger, say):
+    # Assume there's an input block with `input_c` as the block_id and `dreamy_input`
+    hopes_and_dreams = view["state"]["values"]["input_select"]["static_select-action"]['selected_option']
+    user = body["user"]["id"]
+    # Validate the inputs
+    errors = {}
+    if hopes_and_dreams is not None and len(hopes_and_dreams['text']['text']) <= 5:
+        errors["input_c"] = "The value must be longer than 5 characters"
+    if hopes_and_dreams is None:
+        ack(response_action="errors", errors=errors)
+        return
+    # Acknowledge the view_submission request and close the modal
+    ack()
+    # Do whatever you want with the input data - here we're saving it to a DB
+    # then sending the user a verification of their submission
+
+    # Message to send user
+    msg = ""
+    try:
+        # Save to DB
+        msg = f"Your submission of {hopes_and_dreams} was successful"
+    except Exception as ea:
+        # Handle error
+        msg = "There was an error with your submission"
+
+    # Message the user
+    try:
+        client.chat_postMessage(channel=user, text="", blocks=get_waiting_to_start_view())
+    except Exception as e:
+        logger.exception(f"Failed to post a message {e}")
+
+
 @app.command("/new_tournament")
 def open_modal(ack, body, client):
     # Acknowledge the command request
@@ -93,4 +139,7 @@ def open_modal(ack, body, client):
 if __name__ == '__main__':
     auth_challonge()
 
-    SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
+    context = ssl._create_unverified_context()
+
+    sc = slack_sdk.WebClient(os.environ["SLACK_APP_TOKEN"], ssl=context)
+    SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"], web_client=sc).start()
