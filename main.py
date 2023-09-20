@@ -1,145 +1,145 @@
+import os
+import ssl
 import slack_sdk
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-from challonge_api import *
-from views.create_tournament_view import get_create_view
-import os
-import ssl
+from challonge_api import ChallongeAPI
+from models.registered_user import RegisteredUser
+from views.create_tournament_modal import get_create_view
+from views.waiting_to_start_message import get_waiting_to_start_view
+from views.join_tournament_modal import get_join_tournament_view
 
-from views.waiting_to_start_view import get_waiting_to_start_view
-
+# Global Configurations
 ssl._create_default_https_context = ssl._create_unverified_context
-
+USERNAME = os.getenv("CHALLONGE_USERNAME", "jordan_garces")
+API_KEY = os.getenv("CHALLONGE_API_KEY", "l023Fd0Funogz2JyxDqfPif6UeL10728JcfwLZfM")
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
-registered_users = {}
+challonge_api = ChallongeAPI(USERNAME, API_KEY)
+registered_users = []
+big_block = []
+original_message_ts = None
 
 
-@app.message("hello")
-def message_hello(message, say, ack, body, client):
-    body['trigger_id'] = '1'
-    open_modal(ack, body, client)
-
-
+# Message Handlers
 @app.message("matches")
 def message_matches(message, say):
-    # say() sends a message to the channel where the event was triggered
-    say(
-        blocks=get_tournament_open_matches()
-    )
+    say(text="hello", blocks=challonge_api.get_open_matches("dsadsaddsa3qqsad"))
 
 
-@app.message("register")
-def message_register(client, message, say):
-    # say() sends a message to the channel where the event was triggered
-    if message['user'] in registered_users:
-        pass
-    else:
-        tournament = challonge.tournaments.show('voltserver-u1ekdgjd')
-        participants = challonge.participants.index(tournament["id"])
-
-        partLst = []
-        for person in participants:
-            var = {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "User: {}".format(person['username'])
-                },
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Register"
-                    },
-                    "value": person['username'],
-                    "action_id": "button-action"
-                }
-            }
-            partLst.append(var)
-
-        say(
-            blocks=partLst
-        )
-
-        channel_id = message['channel']
-        client.chat_postMessage(
-            channel=channel_id,
-            text="Works"
-        )
-
-
-@app.action("button_click")
-def action_button_click(body, ack, say):
-    # Acknowledge the action
+@app.message("user")
+def message_matches(body, ack, say, client):
     ack()
-    say(f"<@{body['user']['id']}> clicked the button")
+    print(client.users_info(user='U01BL9XTCJY'))
+
+
+# Action Handlers
+@app.action("button_click")
+def action_button_click(body, ack, client):
+    ack()
+    client.views_open(trigger_id=body["trigger_id"], view=get_join_tournament_view())
 
 
 @app.action("button-action")
 def register_action_button_click(body, ack, say):
-    # Acknowledge the action
     ack()
-    registered_users[body['user']['name']] = body['actions'][0]['value']
-    say(registered_users.__str__())
+    user_name = body['user']['name']
+    selected_value = body['actions'][0]['value']
+    registered_users[user_name] = selected_value
+    say(str(registered_users))
 
 
-@app.action("static_select-action")
-def register_action_button_click(body, ack, say):
-    # Acknowledge the action
+@app.action("ack-select-action")
+def register_ack_select_action(ack):
     ack()
 
 
-# Update the view on submission
-@app.view("view_1")
-def handle_submission(ack, body, client, view, logger, say):
-    # Assume there's an input block with `input_c` as the block_id and `dreamy_input`
-    hopes_and_dreams = view["state"]["values"]["input_select"]["static_select-action"]['selected_option']
+# View Handlers
+@app.view("create_tournament_view")
+def handle_creation_submission(ack, body, client, view, logger):
+    global original_message_ts
+    global registered_users
+    global big_block
+
+    teamsOption = view["state"]["values"]["input_select"]["ack-select-action"].get('selected_option')
+    elimOption = view["state"]["values"]["input_select2"]["ack-select-action"].get('selected_option')
+    startTime = view["state"]["values"]["input_time"]["timepicker-action"].get('selected_time')
     user = body["user"]["id"]
-    # Validate the inputs
-    errors = {}
-    if hopes_and_dreams is not None and len(hopes_and_dreams['text']['text']) <= 5:
-        errors["input_c"] = "The value must be longer than 5 characters"
-    if hopes_and_dreams is None:
+    errors = {
+        "input_select": "Please select a team option" if not teamsOption else None,
+        "input_select2": "Please select an elimination option" if not elimOption else None
+    }
+    if any(errors.values()):
         ack(response_action="errors", errors=errors)
         return
-    # Acknowledge the view_submission request and close the modal
     ack()
-    # Do whatever you want with the input data - here we're saving it to a DB
-    # then sending the user a verification of their submission
-
-    # Message to send user
-    msg = ""
     try:
-        # Save to DB
-        msg = f"Your submission of {hopes_and_dreams} was successful"
-    except Exception as ea:
-        # Handle error
-        msg = "There was an error with your submission"
-
-    # Message the user
-    try:
-        client.chat_postMessage(channel=user, text="", blocks=get_waiting_to_start_view())
+        registered_users = []
+        big_block = get_waiting_to_start_view(teamsOption['text']['text'], elimOption['text']['text'], startTime)
+        response = client.chat_postMessage(
+            channel=user,
+            text="",
+            blocks=big_block
+        )
+        print(response)
+        original_message_ts = response['ts']
     except Exception as e:
         logger.exception(f"Failed to post a message {e}")
 
 
-@app.command("/new_tournament")
-def open_modal(ack, body, client):
-    # Acknowledge the command request
+@app.view("join_tournament_modal")
+def handle_tournament_join(ack, body, client, view, logger):
+    global original_message_ts
+    global big_block
+
+    user_option = view["state"]["values"]["section-radio"]["ack-select-action"]
+    challonge_name = view["state"]["values"]["section-challonge"]["ack-select-action"].get('value', '')
+
     ack()
-    # Call views_open with the built-in client
-    client.views_open(
-        # Pass a valid trigger_id within 3 seconds of receiving it
-        trigger_id=body["trigger_id"],
-        # View payload
-        view=get_create_view()
-    )
+    response = client.conversations_open(users=body['user']['id'])
+    registered_users.append(RegisteredUser(body['user']['name'], response['channel']['id'], ""))
+    print(body['user'])
+    us = client.users_info(user='U01BL9XTCJY')['user']['profile']
+    for user in registered_users:
+        if user:
+            match_text = {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Match of *{}* vs *{}*.".format(
+                        user.slack_name,
+                        user.slack_channel_id
+                    )
+                }
+            }
+            big_block.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"{us['display_name_normalized']}"
+                },
+                "accessory": {
+                    "type": "image",
+                    "image_url": f"{us['image_original']}",
+                    "alt_text": "cute cat"
+                }})
+    try:
+        if original_message_ts:
+            client.chat_update(
+                channel=response['channel']['id'],
+                ts=original_message_ts,
+                blocks=big_block
+            )
+    except Exception as e:
+        logger.exception(f"Failed to update the message {e}")
+
+
+@app.command("/new_tournament")
+def open_create_tournament_modal(ack, body, client, logger):
+    ack()
+    client.views_open(trigger_id=body["trigger_id"], view=get_create_view())
 
 
 if __name__ == '__main__':
-    auth_challonge()
-
     context = ssl._create_unverified_context()
-
     sc = slack_sdk.WebClient(os.environ["SLACK_APP_TOKEN"], ssl=context)
     SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"], web_client=sc).start()

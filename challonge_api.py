@@ -1,29 +1,71 @@
 import challonge
 
 
-def create_tournament():
-    challonge.tournaments.destroy("dsadsaddsa3qqsad")
-    challonge.tournaments.create("test", "dsadsaddsa3qqsad", subdomain='voltserver', description="voltserver")
+class ChallongeAPI:
+    def __init__(self, username, api_key):
+        self.username = username
+        self.api_key = api_key
+        self._authenticate()
 
+    def _authenticate(self):
+        challonge.set_credentials(self.username, self.api_key)
 
-def get_tournament_open_matches():
-    tournament = challonge.tournaments.show('voltserver-u1ekdgjd')
-    matches = challonge.matches.index(tournament["id"])
-    open_matches = []
-    for match in matches:
-        if match["state"] == "open":
-            var = {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Match of *{}* vs *{}*.".format(
-                        challonge.participants.show(tournament["id"], match["player1_id"])["username"],
-                        challonge.participants.show(tournament["id"], match["player2_id"])["username"])
-                }
-            }
-            open_matches.append(var)
-    return open_matches
+    @staticmethod
+    def create_tournament(name, url, subdomain='voltserver', description='voltserver'):
+        try:
+            # Ensure the tournament with the given URL doesn't already exist
+            try:
+                challonge.tournaments.destroy(url)
+            except Exception as e:
+                print(f"Error destroying tournament: {e}")
 
+            challonge.tournaments.create(name, url, subdomain=subdomain, description=description)
+            print(f"Tournament {name} created!")
+        except Exception as e:
+            print(f"Error creating tournament: {e}")
 
-def auth_challonge():
-    challonge.set_credentials("jordan_garces", "l023Fd0Funogz2JyxDqfPif6UeL10728JcfwLZfM")
+    @staticmethod
+    def get_open_matches(tournament_identifier):
+        open_matches = []
+        try:
+            tournament = challonge.tournaments.show(tournament_identifier)
+            matches = challonge.matches.index(tournament["id"])
+            for match in matches:
+                if match["state"] == "open":
+                    match_text = {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Match of *{}* vs *{}*.".format(
+                                challonge.participants.show(tournament["id"], match["player1_id"])["username"],
+                                challonge.participants.show(tournament["id"], match["player2_id"])["username"]
+                            )
+                        }
+                    }
+                    open_matches.append(match_text)
+        except Exception as e:
+            print(f"Error fetching open matches: {e}")
+
+        return open_matches
+
+    @staticmethod
+    def get_tournament_partipants(tournament_identifier):
+        try:
+            tournament = challonge.tournaments.show(tournament_identifier)
+            participants = challonge.participants.index(tournament["id"])
+            print(participants)
+            return participants
+        except Exception as e:
+            print(f"Error fetching open matches: {e}")
+
+    @staticmethod
+    def is_valid_challonge_name(tournament_identifier, challonge_name):
+        try:
+            participants = challonge.participants.index(tournament_identifier)
+            for participant in participants:
+                if participant["username"] == challonge_name:
+                    return True
+            return False
+        except Exception as e:
+            print(f"Error validating Challonge name: {e}")
+            return False
