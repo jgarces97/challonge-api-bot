@@ -1,4 +1,6 @@
 import challonge
+import random
+import string
 
 
 class ChallongeAPI:
@@ -10,19 +12,36 @@ class ChallongeAPI:
     def _authenticate(self):
         challonge.set_credentials(self.username, self.api_key)
 
-    @staticmethod
-    def create_tournament(name, url, subdomain='voltserver', description='voltserver'):
-        try:
-            # Ensure the tournament with the given URL doesn't already exist
-            try:
-                challonge.tournaments.destroy(url)
-            except Exception as e:
-                print(f"Error destroying tournament: {e}")
 
-            challonge.tournaments.create(name, url, subdomain=subdomain, description=description)
-            print(f"Tournament {name} created!")
+    @staticmethod
+    def create_tournament(name, subdomain='voltserver', description='voltserver'):
+        try:
+            response = challonge.tournaments.create(
+                name=name, url=''.join(random.choice
+                                       (string.ascii_uppercase + string.ascii_lowercase + string.digits)
+                                       for _ in range(16)),
+                subdomain=subdomain, description=description)
+            return response
         except Exception as e:
             print(f"Error creating tournament: {e}")
+
+    @staticmethod
+    def add_user_to_tournament(username, tournament_id, challonge_user=None):
+        try:
+            response = challonge.participants.create(tournament=tournament_id, name=f''.join(random.choice
+                                       (string.ascii_uppercase + string.ascii_lowercase + string.digits)
+                                       for _ in range(16)), challonge_username=challonge_user)
+            print(response)
+        except Exception as e:
+            print(f"Error adding user to tournament: {e}")
+
+    @staticmethod
+    def get_bracket_image_url(tournament_id):
+        try:
+            response = challonge.tournaments.show(tournament=tournament_id)
+            return response
+        except Exception as e:
+            print(f"Error adding user to tournament: {e}")
 
     @staticmethod
     def get_open_matches(tournament_identifier):
@@ -49,7 +68,7 @@ class ChallongeAPI:
         return open_matches
 
     @staticmethod
-    def get_tournament_partipants(tournament_identifier):
+    def get_tournament_participants(tournament_identifier):
         try:
             tournament = challonge.tournaments.show(tournament_identifier)
             participants = challonge.participants.index(tournament["id"])

@@ -1,4 +1,4 @@
-def get_join_tournament_view():
+def get_join_tournament_modal():
     return {
         "type": "modal",
         "callback_id": "join_tournament_modal",

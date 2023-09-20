@@ -1,4 +1,4 @@
-def get_create_view():
+def get_create_tournament_modal():
     return {
         "type": "modal",
         "callback_id": "create_tournament_view",
