@@ -5,3 +5,7 @@ class RegisteredUser:
         self.slack_dm_channel_id = slack_dm_channel_id
         self.slack_picture_url = slack_user_info['profile']['image_original']
         self.challonge_name = challonge_name
+        self.ready_for_match = False
+
+    def __eq__(self, other):
+        return self.slack_username == other.slack_username

@@ -1,9 +1,9 @@
 import datetime
 
+from models.tournament import Tournament
 
-def get_register_message_blocks(teams_option, elimination_type, start_time, registered_users=None):
-    if registered_users is None:
-        registered_users = []
+
+def get_register_message_blocks(current_tournament: Tournament):
 
     register_blocks = [
         {
@@ -20,12 +20,12 @@ def get_register_message_blocks(teams_option, elimination_type, start_time, regi
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f" :memo: *{len(registered_users)} Entries*"
+                "text": f" :memo: *{len(current_tournament.registered_users)} Entries*"
             }
         }
     ]
 
-    for user in registered_users:
+    for user in current_tournament.registered_users:
         register_blocks.append({
             "type": "divider"
         })
@@ -50,9 +50,9 @@ def get_register_message_blocks(teams_option, elimination_type, start_time, regi
             "text": {
                 "type": "mrkdwn",
                 "text": f":alarm_clock: Tournament starts at "
-                        f"*{datetime.datetime.strptime(start_time,'%H:%M').strftime('%I:%M %p')}*"
-                        f"\n:standing_person: Entry Type: {teams_option}"
-                        f"\n:crossed_swords: Tournament Type: {elimination_type}"
+                        f"*{datetime.datetime.strptime(current_tournament.start_time,'%H:%M').strftime('%I:%M %p')}*"
+                        f"\n:standing_person: Entry Type: {current_tournament.player_mode}"
+                        f"\n:crossed_swords: Tournament Type: {current_tournament.elimination_mode}"
             }
         })
 

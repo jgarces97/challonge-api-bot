@@ -81,6 +81,7 @@ def get_create_tournament_modal():
                         "text": "Select time",
                         "emoji": True
                     },
+                    "initial_time": "13:00",
                     "action_id": "timepicker-action"
                 },
                 "label": {
