@@ -1,4 +1,5 @@
 import datetime
+import string
 
 from models.tournament import Tournament
 
@@ -27,9 +28,6 @@ def get_register_message_blocks(current_tournament: Tournament):
 
     for user in current_tournament.registered_users:
         register_blocks.append({
-            "type": "divider"
-        })
-        register_blocks.append({
             "type": "section",
             "text": {
                 "type": "mrkdwn",
@@ -41,9 +39,9 @@ def get_register_message_blocks(current_tournament: Tournament):
                 "alt_text": "cute cat"
             }})
 
-        register_blocks.append({
-            "type": "divider"
-        })
+    register_blocks.append({
+        "type": "divider"
+    })
 
     register_blocks.append({
             "type": "section",
@@ -52,7 +50,7 @@ def get_register_message_blocks(current_tournament: Tournament):
                 "text": f":alarm_clock: Tournament starts at "
                         f"*{datetime.datetime.strptime(current_tournament.start_time,'%H:%M').strftime('%I:%M %p')}*"
                         f"\n:standing_person: Entry Type: {current_tournament.player_mode}"
-                        f"\n:crossed_swords: Tournament Type: {current_tournament.elimination_mode}"
+                        f"\n:crossed_swords: Tournament Type: {string.capwords(current_tournament.elimination_mode)}"
             }
         })
 
