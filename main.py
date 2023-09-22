@@ -32,12 +32,6 @@ def message_matches(body, ack, say, client):
         {"name": "test", "profile": {"display_name_normalized": "test", "image_original": "google.com"}}, "", ""))
 
 
-@app.message("test")
-def test(body, ack, say, client, logger):
-    ack()
-    print(body)
-
-
 # Action Handlers
 @app.action("join_tournament_button_click")
 def join_tournament_button_click(body, ack, client, logger):
@@ -122,7 +116,6 @@ def handle_create_tournament_submission(ack, body, client, view, logger):
     teams_option = view["state"]["values"]["input_select"]["ack-select-action"].get('selected_option')
     elim_option = view["state"]["values"]["input_select2"]["ack-select-action"].get('selected_option')
     start_time = view["state"]["values"]["input_time"]["timepicker-action"].get('selected_time')
-    user = body["user"]["id"]
 
     errors = {
         "input_select": "Please select a team option" if not teams_option else None,
@@ -208,7 +201,6 @@ def handle_report_score_submission(ack, body, view, client, logger):
         else:
             p2_games_won += 1 + p2_games_won
 
-    print(scores)
     if p1_games_won > p2_games_won:
         current_tournament.submit_match_scores("jordan.garces", scores, 1)
     else:
@@ -222,7 +214,6 @@ def handle_report_score_submission(ack, body, view, client, logger):
             ts=current_tournament.in_progress_message_ts,
             blocks=get_tournament_in_progress_blocks(current_tournament)
         )
-        print(response)
     except Exception as e:
         logger.exception(f"Failed to update the message {e}")
 
@@ -297,7 +288,6 @@ def report_score_command(ack, body, client, logger):
     ack()
 
     try:
-        print(body)
         response = client.views_open(trigger_id=body["trigger_id"],
                                      view=get_report_scores_modal(current_tournament, body['user_name']))
         print({"message": "/report", "ts": datetime.datetime.now().strftime('%X'),
