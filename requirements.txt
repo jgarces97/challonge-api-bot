@@ -1,0 +1,3 @@
+pychallonge~=1.11.5
+CairoSVG~=2.7.1
+imgurpython~=1.1.7

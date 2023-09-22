@@ -3,7 +3,6 @@ import string
 
 from models.tournament import Tournament
 
-
 def get_register_message_blocks(current_tournament: Tournament):
 
     register_blocks = [
