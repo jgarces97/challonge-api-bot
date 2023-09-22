@@ -18,7 +18,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 current_tournament: Tournament = None
 slack_to_challonge_config = {}
-channel_id = 'D05L6AJJGS2'
+channel_id = os.environ.get("PING_PONG_CHANNEL_NAME")
 
 
 # Message Handlers
@@ -28,8 +28,21 @@ def message_matches(body, ack, say, client):
     global channel_id
 
     ack()
-    current_tournament.add_user_to_tournament(user=RegisteredUser(
-        {"name": "test", "profile": {"display_name_normalized": "test", "image_original": "google.com"}}, "", ""))
+    #current_tournament.add_user_to_tournament(user=RegisteredUser(
+       # {"name": "test", "profile": {"display_name_normalized": "test", "image_original": "google.com"}}, "", ""))
+
+
+@app.message("test")
+def message_matches(body, ack, say, client):
+    global current_tournament
+    global channel_id
+
+    ack()
+    client.chat_postEphemeral(
+        channel=channel_id,
+        text="Test",
+        user=body['event']['user']
+    )
 
 
 # Action Handlers
