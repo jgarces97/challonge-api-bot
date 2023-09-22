@@ -76,6 +76,23 @@ class Tournament:
                                              winner_id=match['player2_id'])
                     self.update_bracket_image_url()
 
+    def get_user_report_block(self, slack_username):
+        matches = self.get_current_matches()
+
+        for match in matches:
+            name1 = challonge.participants.show(self.tournament_id, match['player1_id'])['name']
+            name2 = challonge.participants.show(self.tournament_id, match['player2_id'])['name']
+
+            if name1.__eq__(slack_username) or name2.__eq__(slack_username):
+                return {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"Left:{name1} || Right:{name2}",
+                        "emoji": True
+                    }
+                }
+
     def end_tournament(self):
         try:
             response = challonge.tournaments.finalize(tournament=self.tournament_id)

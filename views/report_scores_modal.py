@@ -4,6 +4,9 @@ from models.tournament import Tournament
 def get_report_scores_modal(tournament: Tournament, slack_username):
     report_blocks = []
 
+    report_blocks.append(
+        tournament.get_user_report_block(slack_username)
+    )
     for game_num in range(1, 4):
         report_blocks.append({
                 "type": "section",
