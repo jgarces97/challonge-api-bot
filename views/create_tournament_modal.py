@@ -1,7 +1,7 @@
 def get_create_tournament_modal():
     return {
         "type": "modal",
-        "callback_id": "create_tournament_view",
+        "callback_id": "create_tournament_callback",
         "title": {"type": "plain_text", "text": "Create A New Tournament"},
         "submit": {"type": "plain_text", "text": "Create"},
         "blocks": [
